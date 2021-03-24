@@ -74,9 +74,31 @@ namespace WinUAE_Scanner
         static SYSTEM_INFO sys_info;
         static IntPtr proc_min_address;
         static IntPtr proc_max_address;
-        static long proc_min_address_l;
-        static long proc_max_address_l;
         public static int BASE_Index = -1;
+
+        static bool isLowerThan(IntPtr _a, IntPtr _b)
+        {
+            long a = _a.ToInt64();
+            long b = _b.ToInt64();
+            if (a == b) return false;
+            if (a < 0 && b >= 0) return false;
+            if (a >= 0 && b < 0) return true;
+            if (a < 0 && b < 0)
+            {
+                if (a > b)
+                    return true;
+                else
+                    return false;
+            }
+            if (a >= 0 && b >= 0)
+            {
+                if (a < b)
+                    return true;
+                else
+                    return false;
+            }
+            return false;
+        }
 
         static bool Connect(string _processName)
         {
@@ -89,12 +111,7 @@ namespace WinUAE_Scanner
             proc_min_address = sys_info.minimumApplicationAddress;
             proc_max_address = sys_info.maximumApplicationAddress;
 
-            // saving the values as long ints so I won't have to do a lot of casts later
-            proc_min_address_l = (long)proc_min_address;
-            proc_max_address_l = (long)proc_max_address;
-
-
-            // notepad better be runnin'
+            
             Process[] processList = Process.GetProcessesByName(_processName);
             if (processList.Length == 0)
             {
@@ -125,10 +142,21 @@ namespace WinUAE_Scanner
             if (!Connect(_processName)) return false;
             int bytesRead = 0;  // number of bytes read with ReadProcessMemory
 
-            while (proc_min_address_l < proc_max_address_l)
+            //            while (isLowerThan(proc_min_address, proc_max_address))
+            long readSoFar = 0;
+            long loopSearch = 0;
+            while (true)
             {
                 // 28 = sizeof(MEMORY_BASIC_INFORMATION)
-                VirtualQueryEx(processHandle, proc_min_address, out mem_basic_info, 28);
+                try
+                {
+                    VirtualQueryEx(processHandle, proc_min_address, out mem_basic_info, 28);
+
+                }
+                catch (Exception ex)
+                {
+                    break;
+                }
 
                 // if this memory chunk is accessible
                 if (mem_basic_info.Protect ==
@@ -191,8 +219,15 @@ namespace WinUAE_Scanner
                 }
 
                 // move to the next memory chunk
-                proc_min_address_l += mem_basic_info.RegionSize;
-                proc_min_address = new IntPtr(proc_min_address_l);
+                proc_min_address += mem_basic_info.RegionSize;
+                readSoFar += mem_basic_info.RegionSize;
+                if (readSoFar > 2000 * 1024 * 1024)
+                {
+                    readSoFar = 0;
+                    loopSearch++;
+                    if (loopSearch >= 20)
+                        break;
+                }
             }
             MessageBox.Show("ERROR: could not find [STRT-DBG] tag in process memory");
             return false;
@@ -203,7 +238,7 @@ namespace WinUAE_Scanner
             if (!Connect(_processName)) return false;
             int bytesRead = 0;  // number of bytes read with ReadProcessMemory
 
-            while (proc_min_address_l < proc_max_address_l)
+            while (isLowerThan(proc_min_address, proc_max_address))
             {
                 // 28 = sizeof(MEMORY_BASIC_INFORMATION)
                 VirtualQueryEx(processHandle, proc_min_address, out mem_basic_info, 28);
@@ -257,8 +292,7 @@ namespace WinUAE_Scanner
                 }
 
                 // move to the next memory chunk
-                proc_min_address_l += mem_basic_info.RegionSize;
-                proc_min_address = new IntPtr(proc_min_address_l);
+                proc_min_address += mem_basic_info.RegionSize;
             }
             MessageBox.Show("ERROR: could not find [STRT-DBG] tag in process memory");
             return false;
