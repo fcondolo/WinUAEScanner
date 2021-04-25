@@ -155,6 +155,7 @@ namespace WinUAE_Scanner
                 }
                 catch (Exception ex)
                 {
+                    MessageBox.Show("VirtualQueryEx: " + ex.Message);
                     break;
                 }
 

@@ -61,7 +61,7 @@ namespace WinUAE_Scanner
                     }
                     catch (Exception ex)
                     {
-
+                        MessageBox.Show("backgroundWorker1_DoWork: " + ex.Message);
                     }
                 }
             }

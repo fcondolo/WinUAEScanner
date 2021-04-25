@@ -114,5 +114,15 @@ namespace WinUAE_Scanner
                 statusbar1.Text = "ROM not found";
             }
         }
+
+        private void button2_Click_1(object sender, EventArgs e)
+        {
+            System.Diagnostics.Process.Start("http://www.deadliners.net/winuaescannerhelp.html");
+        }
+
+        private void backgroundWorker1_DoWork(object sender, DoWorkEventArgs e)
+        {
+
+        }
     }
 }
